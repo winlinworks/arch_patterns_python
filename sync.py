@@ -58,3 +58,24 @@ def determine_actions(source_hashes, dest_hashes, source_folder, dest_folder):
     for sha, filename in dest_hashes.items():
         if sha not in source_hashes:
             yield "DELETE", dest_folder / filename
+
+def sync2(reader, filesystem, source_root, dest_root):
+    source_hashes = reader(source_root)
+    dest_hashes = reader(dest_root)
+
+    for sha, filename in source_hashes.items():
+        if sha not in dest_hashes:
+            sourcepath = f"{source_root}/{filename}"
+            destpath = f"{dest_root}/{filename}"
+            filesystem.copy(sourcepath, destpath)
+
+        elif dest_hashes[sha] != filename:
+            olddestpath = f"{dest_root}/{dest_hashes[sha]}"
+            newdestpath = f"{dest_root}/{filename}"
+            filesystem.move(olddestpath, newdestpath)
+
+    for sha, filename in dest_hashes.items():
+        if sha not in source_hashes:
+            filesystem.delete(dest_root / filename)
+    
+    return filesystem

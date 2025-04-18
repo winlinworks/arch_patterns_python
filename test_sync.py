@@ -2,6 +2,7 @@ import tempfile
 from pathlib import Path
 import shutil
 from sync import sync, determine_actions
+from sync import sync2
 
 
 class TestE2E:
@@ -59,3 +60,37 @@ def test_when_a_file_has_been_renamed_in_the_source():
     dest_hashes = {"hash1": "fn2"}
     actions = determine_actions(source_hashes, dest_hashes, Path("/src"), Path("/dst"))
     assert list(actions) == [("MOVE", Path("/dst/fn2"), Path("/dst/fn1"))]
+
+
+class FakeFileSystem(list):
+    def copy(self, source, dest):
+        self.append(("COPY", source, dest))
+
+    def move(self, source, dest):
+        self.append(("MOVE", source, dest))
+
+    def delete(self, dest):
+        self.append(("DELETE", dest))
+
+
+def test_when_a_file_exists_in_the_source_but_not_the_destination2():
+    source_hashes = {"hash1": "fn1"}
+    dest_hashes = {}
+
+    reader = {"/src": source_hashes, "/dst": dest_hashes}
+    filesystem = FakeFileSystem()
+
+    actions = sync2(reader.pop, filesystem, "/src", "/dst")
+    assert list(actions) == [("COPY", "/src/fn1", "/dst/fn1")]
+
+
+def test_when_a_file_has_been_renamed_in_the_source2():
+    source_hashes = {"hash1": "fn1"}
+    dest_hashes = {"hash1": "fn2"}
+
+    reader = {"/src": source_hashes, "/dst": dest_hashes}
+    filesystem = FakeFileSystem()
+
+    actions = sync2(reader.pop, filesystem, "/src", "/dst")
+    assert list(actions) == [("MOVE", "/dst/fn2", "/dst/fn1")]
+
