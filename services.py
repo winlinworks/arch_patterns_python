@@ -28,11 +28,10 @@ def add_batch(reg: str, sku: str, qty: int, eta: str | None, repo: AbstractRepos
     session.commit()
 
 
-class InvalidAllocation(Exception):
-    pass
-
 def deallocate(line: OrderLine, repo: AbstractRepository, session) -> str:
     batches = repo.list()
+    if not is_valid_sku(line.sku, batches):
+        raise InvalidSku(f"Invalid sku {line.sku}")
     batchref = model.deallocate(line, batches)
     session.commit()
     return batchref
