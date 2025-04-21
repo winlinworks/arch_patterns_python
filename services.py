@@ -20,3 +20,19 @@ def allocate(line: OrderLine, repo: AbstractRepository, session) -> str:
     batchref = model.allocate(line, batches)
     session.commit()
     return batchref
+
+
+def add_batch(reg: str, sku: str, qty: int, eta: str | None, repo: AbstractRepository, session) -> None:
+    batch = model.Batch(reg, sku, qty, eta)
+    repo.add(batch)
+    session.commit()
+
+
+class InvalidAllocation(Exception):
+    pass
+
+def deallocate(line: OrderLine, repo: AbstractRepository, session) -> str:
+    batches = repo.list()
+    batchref = model.deallocate(line, batches)
+    session.commit()
+    return batchref

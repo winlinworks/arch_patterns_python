@@ -58,17 +58,54 @@ def test_deallocate_decrements_available_quantity():
     # TODO: you'll need to implement the services.add_batch method
     services.add_batch("b1", "BLUE-PLINTH", 100, None, repo, session)
     line = model.OrderLine("o1", "BLUE-PLINTH", 10)
+
+    # allocate the line
     services.allocate(line, repo, session)
     batch = repo.get(reference="b1")
+    # check that the available quantity is decremented
     assert batch.available_quantity == 90
-    # services.deallocate(...
-    ...
+
+    # deallocate the line
+    services.deallocate(line, repo, session)
+    batch = repo.get(reference="b1")
+    # check that the available quantity is back to 100
     assert batch.available_quantity == 100
 
 
 def test_deallocate_decrements_correct_quantity():
-    ...  #  TODO - check that we decrement the right sku
+    # TODO - check that we decrement the right sku
+    repo, session = FakeRepository([]), FakeSession()
+    services.add_batch("b1", "BLUE-PLINTH", 100, None, repo, session)
+    services.add_batch("b2", "RED-PLINTH", 100, None, repo, session)
+    line = model.OrderLine("o1", "BLUE-PLINTH", 10)
+    line2 = model.OrderLine("o2", "RED-PLINTH", 20)
+
+    # allocate the lines
+    services.allocate(line, repo, session)
+    services.allocate(line2, repo, session)
+    batch1 = repo.get(reference="b1")
+    batch2 = repo.get(reference="b2")
+
+    # check that the available quantity is decremented
+    assert batch1.available_quantity == 90
+    assert batch2.available_quantity == 80
+
+    # deallocate the lines
+    services.deallocate(line, repo, session)
+    services.deallocate(line2, repo, session)
+    batch1 = repo.get(reference="b1")
+    batch2 = repo.get(reference="b2")
+
+    # check that the available quantity is back to 100
+    assert batch1.available_quantity == 100
+    assert batch2.available_quantity == 100
 
 
 def test_trying_to_deallocate_unallocated_batch():
-    ...  #  TODO: should this error or pass silently? up to you.
+    # TODO - check that we raise an error when trying to deallocate an unallocated batch
+    repo, session = FakeRepository([]), FakeSession()
+    services.add_batch("b1", "BLUE-PLINTH", 100, None, repo, session)
+    line = model.OrderLine("o1", "BLUE-PLINTH", 10)
+
+    with pytest.raises(model.NotAllocated):
+        services.deallocate(line, repo, session)

@@ -16,6 +16,16 @@ def allocate(line: OrderLine, batches: List[Batch]) -> str:
     except StopIteration:
         raise OutOfStock(f"Out of stock for sku {line.sku}")
 
+class NotAllocated(Exception):
+    pass
+
+def deallocate(line: OrderLine, batches: List[Batch]) -> str:
+    try:
+        batch = next(b for b in batches if line in b._allocations)
+        batch.deallocate(line)
+        return batch.reference
+    except StopIteration:
+        raise NotAllocated(f"Order line {line} has no allocations")
 
 @dataclass(unsafe_hash=True)
 class OrderLine:
