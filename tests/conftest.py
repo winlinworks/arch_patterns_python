@@ -1,5 +1,6 @@
 # pylint: disable=redefined-outer-name
 import time
+import sys
 from pathlib import Path
 
 import pytest
@@ -9,14 +10,22 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, clear_mappers
 
-from allocation.adapters.orm import metadata, start_mappers
+# Add the src directory to system path
+# This is a workaround for pytest not being able to find the src directory
+# when running the tests from the root directory.
+# This is necessary because the tests are in a different directory than the src code.
+src_path = Path(__file__).resolve().parent.parent / "src"
+if str(src_path) not in sys.path:
+    sys.path.append(str(src_path))
+
+from allocation.adapters.orm import mapper_registry, start_mappers
 from allocation import config
 
 
 @pytest.fixture
 def in_memory_db():
     engine = create_engine("sqlite:///:memory:")
-    metadata.create_all(engine)
+    mapper_registry.metadata.create_all(engine)
     return engine
 
 
@@ -57,7 +66,7 @@ def wait_for_webapp_to_come_up():
 def postgres_db():
     engine = create_engine(config.get_postgres_uri())
     wait_for_postgres_to_come_up(engine)
-    metadata.create_all(engine)
+    mapper_registry.metadata.create_all(engine)
     return engine
 
 
