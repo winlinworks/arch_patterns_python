@@ -20,7 +20,7 @@ def add_batch(
     sku: str,
     qty: int,
     eta: Optional[date],
-    uow  #: unit_of_work.AbstractUnitOfWork
+    uow: unit_of_work.AbstractUnitOfWork
     # this argument could be start_uow: AbstractUnitOfWorkStarter instead?
 ):
     # and this could be with start_uow() as uow:
