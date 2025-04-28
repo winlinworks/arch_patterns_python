@@ -3,23 +3,23 @@ from allocation.adapters import repository
 from allocation.service_layer import services, unit_of_work
 
 
-class FakeRepository(repository.AbstractRepository):
-    def __init__(self, batches):
-        self._batches = set(batches)
+class FakeProductRepository(repository.AbstractProductRepository):
+    def __init__(self, products):
+        self._products = set(products)
 
-    def add(self, batch):
-        self._batches.add(batch)
+    def add(self, product):
+        self._products.add(product)
 
     def get(self, sku):
-        return next((p for p in self._batches if p.sku == sku), None)
+        return next((p for p in self._products if p.sku == sku), None)
 
     def list(self):
-        return list(self._batches)
+        return list(self._products)
 
 
 class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
     def __init__(self):
-        self.products = FakeRepository([])
+        self.products = FakeProductRepository([])
         self.committed = False
 
     def commit(self):
@@ -27,6 +27,20 @@ class FakeUnitOfWork(unit_of_work.AbstractUnitOfWork):
 
     def rollback(self):
         pass
+
+
+def test_add_new_product():
+    uow = FakeUnitOfWork()
+    services.add_product("NEW-PRODUCT", [], uow)
+    assert uow.products.get("NEW-PRODUCT") is not None
+    assert uow.committed
+
+
+def test_add_existing_product():
+    uow = FakeUnitOfWork()
+    services.add_product("EXISTING-PRODUCT", [], uow)
+    with pytest.raises(ValueError, match="Product with SKU EXISTING-PRODUCT already exists."):
+        services.add_product("EXISTING-PRODUCT", [], uow)
 
 
 def test_add_batch_for_new_product():

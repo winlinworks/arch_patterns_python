@@ -2,8 +2,8 @@ import abc
 from allocation.domain import model
 
 
-class AbstractRepository(abc.ABC):
-    def add(self, batch: model.Batch):
+class AbstractProductRepository(abc.ABC):
+    def add(self, product: model.Product):
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -11,15 +11,15 @@ class AbstractRepository(abc.ABC):
         raise NotImplementedError
 
 
-class SqlAlchemyRepository(AbstractRepository):
+class ProductRepository(AbstractProductRepository):
     def __init__(self, session):
         self.session = session
 
-    def add(self, batch):
-        self.session.add(batch)
+    def add(self, product: model.Product):
+        self.session.add(product)
 
-    def get(self, reference):
-        return self.session.query(model.Batch).filter_by(reference=reference).one()
+    def get(self, sku):
+        return self.session.query(model.Product).filter_by(sku=sku).one_or_none()
 
     def list(self):
-        return self.session.query(model.Batch).all()
+        return self.session.query(model.Product).all()
