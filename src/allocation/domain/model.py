@@ -12,11 +12,13 @@ class Product:
     def __init__(self, sku, batches: Set[Batch]):
         self.sku = sku
         self.batches = batches
+        self.version_number = 0
 
     def allocate(self, line):
         try:
             batch = next(b for b in sorted(self.batches) if b.can_allocate(line))
             batch.allocate(line)
+            self.version_number += 1
             return batch.reference
         except StopIteration:
             raise OutOfStock(f"Out of stock for sku {line.sku}")
