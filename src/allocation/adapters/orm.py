@@ -19,6 +19,7 @@ product = Table(
     "products",
     mapper_registry.metadata,
     Column("sku", String(255), primary_key=True),
+    Column("version_number", Integer, nullable=False, server_default="1"),
 )
 
 batches = Table(

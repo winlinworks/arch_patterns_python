@@ -7,17 +7,21 @@ import pytest
 from allocation.domain import model
 from allocation.service_layer import unit_of_work
 from ..random_refs import random_sku, random_batchref, random_orderid
-
+from sqlalchemy import text
 
 def insert_batch(session, ref, sku, qty, eta, product_version=1):
     session.execute(
-        "INSERT INTO products (sku)"
-        " VALUES (:sku) ON CONFLICT DO NOTHING",
-        dict(sku=sku),
+        text(
+            "INSERT INTO products (sku, version_number)"
+            " VALUES (:sku, :version) ON CONFLICT DO NOTHING"
+        ),
+        dict(sku=sku, version=product_version),
     )
     session.execute(
-        "INSERT INTO batches (reference, sku, _purchased_quantity, eta)"
-        " VALUES (:ref, :sku, :qty, :eta)",
+        text(
+            "INSERT INTO batches (reference, sku, _purchased_quantity, eta)"
+        " VALUES (:ref, :sku, :qty, :eta)"
+        ),
         dict(ref=ref, sku=sku, qty=qty, eta=eta),
     )
 
@@ -89,7 +93,6 @@ def try_to_allocate(orderid, sku, exceptions):
         exceptions.append(e)
 
 
-@pytest.mark.skip("do this for an advanced challenge")
 def test_concurrent_updates_to_version_are_not_allowed(postgres_session_factory):
     sku, batch = random_sku(), random_batchref()
     session = postgres_session_factory()
@@ -108,7 +111,9 @@ def test_concurrent_updates_to_version_are_not_allowed(postgres_session_factory)
     thread2.join()
 
     [[version]] = session.execute(
-        "SELECT version_number FROM products WHERE sku=:sku",
+        text(
+            "SELECT version_number FROM products WHERE sku=:sku"
+        ),
         dict(sku=sku),
     )
     assert version == 2
@@ -116,12 +121,14 @@ def test_concurrent_updates_to_version_are_not_allowed(postgres_session_factory)
     assert "could not serialize access due to concurrent update" in str(exception)
 
     orders = session.execute(
-        "SELECT orderid FROM allocations"
-        " JOIN batches ON allocations.batch_id = batches.id"
-        " JOIN order_lines ON allocations.orderline_id = order_lines.id"
-        " WHERE order_lines.sku=:sku",
+        text(
+            "SELECT orderid FROM allocations"
+            " JOIN batches ON allocations.batch_id = batches.id"
+            " JOIN order_lines ON allocations.orderline_id = order_lines.id"
+            " WHERE order_lines.sku=:sku"
+        ),
         dict(sku=sku),
     )
     assert orders.rowcount == 1
     with unit_of_work.SqlAlchemyUnitOfWork() as uow:
-        uow.session.execute("select 1")
+        uow.session.execute(text("select 1"))
